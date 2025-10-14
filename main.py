@@ -6,7 +6,13 @@ cd to the `examples/snippets/clients` directory and run:
 """
 
 from mcp.server.fastmcp import FastMCP
-from utils.wordpress import util_get_post_by_id, util_get_recent_posts
+from wp_api import WPClient
+from wp_api.auth import ApplicationPasswordAuth
+
+def get_wp_client() -> WPClient:
+    """Get a WordPress client instance."""
+    auth = ApplicationPasswordAuth( username="goto@digifix.com.au", app_password="iUGn XOkL QPvs q6jv CCI1 xWAd")
+    return WPClient(base_url="https://googlerank.com.au", auth=auth)
 
 
 # Create an MCP server
@@ -22,7 +28,8 @@ def get_post_by_id(post_id: int) -> dict:
     Returns:
         dict: The WordPress post data.
     """
-    return util_get_post_by_id(post_id)
+    wp = get_wp_client()
+    return wp.posts.get(post_id)
 
 @mcp.tool()
 def get_recent_posts(count: int = 5) -> list[dict]:
@@ -33,7 +40,8 @@ def get_recent_posts(count: int = 5) -> list[dict]:
     Returns:
         list[dict]: A list of recent WordPress post data.
     """
-    return util_get_recent_posts(count)
+    wp = get_wp_client()
+    return wp.posts.list(per_page=count)
 
 
 # Add a dynamic greeting resource
