@@ -11,9 +11,8 @@ def test_imports():
         from mcp.server.fastmcp import FastMCP
         print("✅ FastMCP import successful")
         
-        from wp_api import WPClient
-        from wp_api.auth import ApplicationPasswordAuth
-        print("✅ WordPress API imports successful")
+        import requests
+        print("✅ Requests import successful")
         
         import main
         print("✅ Main module import successful")
@@ -26,17 +25,18 @@ def test_imports():
         return False
 
 def test_wordpress_connection():
-    """Test WordPress client creation and basic connectivity."""
+    """Test WordPress API connection using requests."""
     print("\n🔍 Testing WordPress connection...")
     try:
-        from main import get_wp_client
-        wp = get_wp_client()
-        print(f"✅ WordPress client created: {wp.base_url}")
+        from main import make_wp_request
         
         # Test a simple API call
-        from main import get_recent_posts
-        posts = get_recent_posts(1)
+        posts = make_wp_request("posts", {"per_page": 1})
         print(f"✅ API call successful - fetched {len(posts)} post(s)")
+        
+        if posts:
+            title = posts[0].get('title', {}).get('rendered', 'No title')
+            print(f"✅ Sample post: {title}")
         
         return True
     except Exception as e:
