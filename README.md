@@ -35,9 +35,299 @@ SITE_GOOGLERANK_USER=goto@digifix.com.au
 SITE_GOOGLERANK_APP_PASSWORD=iUGn XOkL QPvs q6jv CCI1 xWAd
 
 # Site 2
-SITE_MYSITE_URL=https://mysite.com
-SITE_MYSITE_USER=admin@mysite.com
-SITE_MYSITE_APP_PASSWORD=xxxx xxxx xxxx xxxx
+# WordPress Multi-Site MCP Server
+
+A powerful Model Context Protocol (MCP) server that provides Claude AI with comprehensive access to multiple WordPress sites via their REST API. Supports full CRUD operations on posts, pages, categories, tags, users, comments, and more.
+
+## 🌟 Features
+
+- **Multi-Site Support** - Manage multiple WordPress sites from a single MCP server
+- **Complete REST API Coverage** - 30+ tools for all major WordPress operations
+- **Full CRUD Operations** - Create, Read, Update, Delete for posts, pages, tags, categories, users, comments
+- **Secure Authentication** - Token-based authentication for server access
+- **Remote Deployment** - HTTP/SSE transport for hosting on remote servers
+- **Flexible Credentials** - Store WordPress credentials on server or in Claude config
+- **Health Monitoring** - Built-in health checks and status endpoints
+
+## 🚀 Quick Start
+
+### Local Development
+
+1. **Clone and Install**
+   ```bash
+   git clone https://github.com/silham/learn-mcp.git
+   cd mcp-server-demo
+   cp .env.example .env
+   # Edit .env with your WordPress credentials
+   ```
+
+2. **Configure WordPress Sites**
+   ```bash
+   # Generate auth token
+   openssl rand -hex 32
+   
+   # Add to .env
+   MCP_AUTH_TOKEN=your-generated-token
+   SITE_MYSITE_URL=https://example.com
+   SITE_MYSITE_USER=admin@example.com
+   SITE_MYSITE_APP_PASSWORD=xxxx xxxx xxxx xxxx
+   ```
+
+3. **Install in Claude**
+   ```bash
+   uv run mcp install main.py --with requests --with python-dotenv --env-file .env
+   ```
+
+### Remote Deployment
+
+See **[QUICKSTART_DEPLOYMENT.md](QUICKSTART_DEPLOYMENT.md)** for deploying to Coolify or any Docker host.
+
+## 📖 Documentation
+
+- **[QUICKSTART_DEPLOYMENT.md](QUICKSTART_DEPLOYMENT.md)** - Deploy to Coolify in 3 steps
+- **[AUTHENTICATION.md](AUTHENTICATION.md)** - Security setup and credential management
+- **[DEPLOYMENT.md](DEPLOYMENT.md)** - Comprehensive deployment guide
+- **[.env.example](.env.example)** - Environment variable template
+- **[claude_desktop_config.example.json](claude_desktop_config.example.json)** - Claude config template
+
+## 🔐 Security
+
+### Two-Level Authentication
+
+1. **MCP Server Auth** - Controls access to the MCP server
+2. **WordPress Auth** - Individual site credentials (Application Passwords)
+
+### Credential Configuration Options
+
+**Option A: Server-Side (Simpler)**
+```bash
+# .env file
+MCP_AUTH_TOKEN=your-token
+SITE_MYSITE_URL=https://example.com
+SITE_MYSITE_USER=admin@example.com
+SITE_MYSITE_APP_PASSWORD=xxxx xxxx
+```
+
+**Option B: Client-Side (More Secure - Recommended)**
+```json
+{
+  "mcpServers": {
+    "wordpress": {
+      "url": "https://mcp.yourdomain.com/sse",
+      "headers": {
+        "Authorization": "Bearer your-token"
+      },
+      "env": {
+        "SITE_MYSITE_URL": "https://example.com",
+        "SITE_MYSITE_USER": "admin@example.com",
+        "SITE_MYSITE_APP_PASSWORD": "xxxx xxxx"
+      }
+    }
+  }
+}
+```
+
+See **[AUTHENTICATION.md](AUTHENTICATION.md)** for complete security guide.
+
+## 🛠️ Available Tools
+
+### Site Management
+- `get_available_sites` - List all configured WordPress sites
+- `get_site_info` - Get WordPress version and site information
+
+### Posts
+- `get_posts` / `get_post` - Retrieve posts with filtering
+- `get_posts_summary` - Lightweight post overview
+- `create_post` - Create new posts
+- `update_post` - Update existing posts
+- `delete_post` - Delete posts
+
+### Pages
+- `get_pages` / `get_page` - Retrieve pages
+- `create_page` - Create new pages
+- `update_page` - Update existing pages
+- `delete_page` - Delete pages
+
+### Categories & Tags
+- `get_categories` / `get_category` - Manage categories
+- `create_category` / `update_category` / `delete_category`
+- `get_tags` / `get_tag` - Manage tags
+- `create_tag` / `update_tag` / `delete_tag`
+
+### Users
+- `get_users` / `get_user` / `get_current_user`
+- `create_user` / `update_user` / `delete_user`
+
+### Comments
+- `get_comments` / `get_comment`
+- `create_comment` / `update_comment` / `delete_comment`
+
+### Media
+- `get_media` / `get_media_item` - Browse and retrieve media
+
+See full list with `get_available_sites` tool in Claude.
+
+## 📊 Architecture
+
+```
+┌─────────────────┐
+│   Claude AI     │
+│  (MCP Client)   │
+└────────┬────────┘
+         │ SSE/HTTP or stdio
+         │
+┌────────▼────────────┐
+│  MCP Server (This)  │
+│  - Authentication   │
+│  - Multi-site mgmt  │
+│  - 30+ WP tools     │
+└────────┬────────────┘
+         │ REST API
+         │
+┌────────▼────────┐  ┌──────────────┐  ┌──────────────┐
+│ WordPress Site 1│  │ WP Site 2    │  │ WP Site N    │
+└─────────────────┘  └──────────────┘  └──────────────┘
+```
+
+## 🔧 Configuration
+
+### Environment Variables
+
+**Server Authentication:**
+```bash
+MCP_AUTH_TOKEN=your-secure-token  # Optional but recommended for production
+```
+
+**WordPress Sites (repeat for each site):**
+```bash
+SITE_<NAME>_URL=https://example.com
+SITE_<NAME>_USER=username@example.com
+SITE_<NAME>_APP_PASSWORD=xxxx xxxx xxxx xxxx
+```
+
+**How to get WordPress Application Password:**
+1. WordPress Admin → Users → Profile
+2. Scroll to "Application Passwords"
+3. Create new password with name "MCP Server"
+4. Copy generated password
+
+### Claude Desktop Config
+
+**Local (stdio):**
+```json
+{
+  "mcpServers": {
+    "wordpress": {
+      "command": "uv",
+      "args": ["run", "main.py"],
+      "cwd": "/path/to/mcp-server-demo",
+      "env": {
+        "SITE_MYSITE_URL": "https://example.com",
+        "SITE_MYSITE_USER": "admin@example.com",
+        "SITE_MYSITE_APP_PASSWORD": "xxxx xxxx"
+      }
+    }
+  }
+}
+```
+
+**Remote (SSE):**
+```json
+{
+  "mcpServers": {
+    "wordpress-remote": {
+      "url": "https://mcp.yourdomain.com/sse",
+      "transport": "sse",
+      "headers": {
+        "Authorization": "Bearer your-auth-token"
+      },
+      "env": {
+        "SITE_MYSITE_URL": "https://example.com",
+        "SITE_MYSITE_USER": "admin@example.com",
+        "SITE_MYSITE_APP_PASSWORD": "xxxx xxxx"
+      }
+    }
+  }
+}
+```
+
+## 🧪 Testing
+
+### Health Check
+```bash
+curl https://mcp.yourdomain.com/health
+```
+
+### SSE Connection (with auth)
+```bash
+curl -H "Authorization: Bearer YOUR_TOKEN" https://mcp.yourdomain.com/sse
+```
+
+### Local Server
+```bash
+./start.sh
+# or
+uv run python server_http.py
+```
+
+## 🐳 Docker Deployment
+
+```bash
+# Build
+docker build -t wordpress-mcp .
+
+# Run
+docker run -p 8000:8000 --env-file .env wordpress-mcp
+
+# Docker Compose
+docker-compose up -d
+```
+
+## 📝 Project Structure
+
+```
+mcp-server-demo/
+├── main.py                     # MCP server core with all tools
+├── server_http.py              # HTTP/SSE wrapper for remote access
+├── pyproject.toml              # Python dependencies
+├── .env                        # Environment config (not in git)
+├── .env.example                # Template
+├── Dockerfile                  # Container definition
+├── docker-compose.yml          # Container orchestration
+├── start.sh                    # Local server startup script
+├── README.md                   # This file
+├── QUICKSTART_DEPLOYMENT.md    # Quick deployment guide
+├── AUTHENTICATION.md           # Security documentation
+├── DEPLOYMENT.md               # Comprehensive deployment guide
+└── claude_desktop_config.example.json  # Claude config template
+```
+
+## 🤝 Contributing
+
+Contributions welcome! This is a learning project demonstrating MCP capabilities.
+
+## 📄 License
+
+MIT License - feel free to use and modify.
+
+## 🙏 Acknowledgments
+
+- Built with [Model Context Protocol (MCP)](https://modelcontextprotocol.io)
+- Uses [FastMCP](https://github.com/jlowin/fastmcp) framework
+- WordPress REST API v2
+
+## 🆘 Support
+
+- Check documentation in AUTHENTICATION.md and DEPLOYMENT.md
+- Review example configs
+- Test with health endpoints
+- Check server logs for errors
+
+## 🔄 Version
+
+**Version:** 1.0.0  
+**Last Updated:** October 2025  
+**MCP Protocol:** 2024-11-05
 
 # Add as many sites as needed...
 ```

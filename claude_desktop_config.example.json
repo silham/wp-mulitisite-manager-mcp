@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "wordpress-remote": {
+      "url": "https://mcp.yourdomain.com/sse",
+      "transport": "sse",
+      "headers": {
+        "Authorization": "Bearer your-auth-token-here"
+      },
+      "env": {
+        "SITE_GOOGLERANK_URL": "https://googlerank.com.au",
+        "SITE_GOOGLERANK_USER": "goto@digifix.com.au",
+        "SITE_GOOGLERANK_APP_PASSWORD": "your-app-password-here"
+      }
+    }
+  }
+}

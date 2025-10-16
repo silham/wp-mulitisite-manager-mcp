@@ -36,12 +36,29 @@ git push origin main
 
 4. **Set Environment Variables**
    
+   **Option A: WordPress credentials on server (simpler)**
+   
    Copy your WordPress site configurations from `.env`:
    
    ```
+   MCP_AUTH_TOKEN=your-generated-token-here
    SITE_GOOGLERANK_URL=https://googlerank.com.au
    SITE_GOOGLERANK_USER=goto@digifix.com.au
    SITE_GOOGLERANK_APP_PASSWORD=iUGn XOkL QPvs q6jv CCI1 xWAd
+   ```
+   
+   **Option B: WordPress credentials in Claude config (more secure)**
+   
+   Only set authentication token on server:
+   ```
+   MCP_AUTH_TOKEN=your-generated-token-here
+   ```
+   
+   WordPress credentials will be in Claude config (see Step 3).
+   
+   💡 **Generate strong auth token:**
+   ```bash
+   openssl rand -hex 32
    ```
    
    Add more sites as needed using the pattern:
@@ -64,12 +81,38 @@ git push origin main
 
 Edit Claude config: `~/Library/Application Support/Claude/claude_desktop_config.json`
 
+**Option A: WordPress credentials on server**
+
 ```json
 {
   "mcpServers": {
     "wordpress-remote": {
       "url": "https://mcp.yourdomain.com/sse",
-      "transport": "sse"
+      "transport": "sse",
+      "headers": {
+        "Authorization": "Bearer your-generated-token-here"
+      }
+    }
+  }
+}
+```
+
+**Option B: WordPress credentials in Claude (Recommended - More Secure)**
+
+```json
+{
+  "mcpServers": {
+    "wordpress-remote": {
+      "url": "https://mcp.yourdomain.com/sse",
+      "transport": "sse",
+      "headers": {
+        "Authorization": "Bearer your-generated-token-here"
+      },
+      "env": {
+        "SITE_GOOGLERANK_URL": "https://googlerank.com.au",
+        "SITE_GOOGLERANK_USER": "goto@digifix.com.au",
+        "SITE_GOOGLERANK_APP_PASSWORD": "iUGn XOkL QPvs q6jv CCI1 xWAd"
+      }
     }
   }
 }
@@ -82,11 +125,25 @@ Or with IP address:
   "mcpServers": {
     "wordpress-remote": {
       "url": "http://SERVER_IP:8000/sse",
-      "transport": "sse"
+      "transport": "sse",
+      "headers": {
+        "Authorization": "Bearer your-generated-token-here"
+      },
+      "env": {
+        "SITE_GOOGLERANK_URL": "https://googlerank.com.au",
+        "SITE_GOOGLERANK_USER": "goto@digifix.com.au",
+        "SITE_GOOGLERANK_APP_PASSWORD": "iUGn XOkL QPvs q6jv CCI1 xWAd"
+      }
     }
   }
 }
 ```
+
+**Why Option B is better:**
+- ✅ Credentials stay on your machine
+- ✅ No credentials on remote server
+- ✅ Each team member can use their own WordPress account
+- ✅ Easier to update credentials locally
 
 **Restart Claude** (Cmd+Q and reopen)
 
@@ -108,17 +165,22 @@ Expected response:
   "status": "healthy",
   "server": "WordPress Multi-Site Manager",
   "sites_configured": 1,
-  "site_names": ["googlerank"]
+  "site_names": ["googlerank"],
+  "auth_enabled": true
 }
 ```
 
 ### Check SSE Endpoint
 
 ```bash
+# Without auth token (should fail)
 curl https://mcp.yourdomain.com/sse
+
+# With auth token (should connect)
+curl -H "Authorization: Bearer your-token" https://mcp.yourdomain.com/sse
 ```
 
-Should establish an SSE connection (keeps open).
+Should establish an SSE connection (keeps open) with valid token.
 
 ## 🔧 Local Testing Before Deployment
 
@@ -139,16 +201,19 @@ Access locally at: http://localhost:8000
 
 ## 📋 Deployment Checklist
 
+- [ ] Generate strong authentication token (`openssl rand -hex 32`)
+- [ ] Choose credentials strategy (server vs client)
 - [ ] Repository pushed to Git
 - [ ] `.env.example` committed (without actual credentials)
 - [ ] `.env` added to `.gitignore`
 - [ ] Coolify application created
-- [ ] Environment variables configured in Coolify
+- [ ] Environment variables configured in Coolify (including `MCP_AUTH_TOKEN`)
 - [ ] Domain configured (optional)
 - [ ] SSL enabled (if using domain)
 - [ ] Deployment successful
-- [ ] Health check returns "healthy"
-- [ ] Claude config updated
+- [ ] Health check returns "healthy" with `auth_enabled: true`
+- [ ] Claude config updated with auth token
+- [ ] Claude config updated with WordPress credentials (if using Option B)
 - [ ] Claude restarted
 - [ ] MCP tools working in Claude
 
@@ -166,6 +231,8 @@ Access locally at: http://localhost:8000
 
 ### Can't Connect from Claude
 - Verify SSE endpoint is accessible
+- Check authentication token matches in both places
+- Ensure `Authorization` header format is correct: `Bearer TOKEN`
 - Check firewall/security groups
 - Ensure URL is correct in Claude config
 - Try HTTP instead of HTTPS for testing
@@ -177,23 +244,46 @@ Access locally at: http://localhost:8000
 
 ## 📖 Full Documentation
 
-See `DEPLOYMENT.md` for comprehensive deployment guide including:
+See these guides for more details:
+- `AUTHENTICATION.md` - **Security setup, credential management, multi-user setup**
+- `DEPLOYMENT.md` - Comprehensive deployment guide with monitoring and optimization
+- `.env.example` - Environment variable template
+
+Key topics in AUTHENTICATION.md:
+- Two credential configuration methods
 - Security best practices
-- Authentication setup
-- Monitoring and logging
-- Performance optimization
-- Scaling strategies
+- Token generation and rotation
+- Multi-user team setup
+- Troubleshooting authentication issues
 
 ## 🔐 Security Notes
 
-**IMPORTANT**: Never commit `.env` file to git!
+**CRITICAL SECURITY FEATURES:**
 
-Your `.env` contains sensitive credentials. Always:
-1. Use `.env.example` for templates
-2. Add `.env` to `.gitignore`
-3. Configure actual credentials in Coolify UI
-4. Enable HTTPS for production
-5. Consider adding authentication token
+1. **MCP Server Authentication** - Required for production!
+   ```bash
+   # Generate strong token
+   openssl rand -hex 32
+   
+   # Set in Coolify
+   MCP_AUTH_TOKEN=your-generated-token
+   ```
+
+2. **WordPress Credentials** - Two secure options:
+   - **Option A**: Store on server (simpler, single user)
+   - **Option B**: Store in Claude config (better, multi-user)
+
+3. **HTTPS** - Always use HTTPS in production
+   - Encrypts all traffic including credentials
+   - Free with Let's Encrypt in Coolify
+
+**IMPORTANT**: Never commit these to git:
+- `.env` (contains actual credentials)
+- `claude_desktop_config.json` (contains your credentials)
+
+✅ Safe to commit:
+- `.env.example` (template only)
+- All code files
 
 ## 🔄 Updating After Deployment
 
