@@ -8,3 +8,33 @@ wheels/
 
 # Virtual environments
 .venv
+venv/
+ENV/
+env/
+
+# Environment files with secrets - IMPORTANT!
+.env
+.env.local
+.env.*.local
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Testing
+.pytest_cache/
+.coverage
+
+# Project specific
+uv.lock
